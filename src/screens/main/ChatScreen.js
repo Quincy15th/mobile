@@ -144,19 +144,49 @@ export default function ChatScreen({ navigation }) {
 
   const handleVoiceMessage = async (uri) => {
     setIsLoading(true);
+    const messageId = Date.now().toString();
+
     try {
-      const response = await chatService.sendVoiceMessage(uri, userToken);
-
-      // Hiển thị văn bản người dùng đã nói (STT) từ server trả về
-      const userText =
-        response.user_text || response.text || "(Không rõ nội dung)";
-
+      // Hiển thị message người dùng ngay lập tức với text "Đang xử lý..."
       const userMessage = {
-        id: Date.now().toString(),
-        text: userText,
+        id: messageId,
+        text: "(Đang xử lý giọng nói...)",
         sender: "user",
+        isLoading: true,
       };
       setMessages((prev) => [...prev, userMessage]);
+
+      const response = await chatService.sendVoiceMessage(uri, userToken);
+
+      // Update lại text người dùng với kết quả thực từ server
+      const userText = response.user_text || response.text;
+
+      // Nếu user_text rỗng, reload history để lấy message từ database
+      if (!userText) {
+        const data = await chatService.getHistory(userToken);
+        if (data && data.history && data.history.length > 0) {
+          const latestUserMsg = data.history
+            .reverse()
+            .find((msg) => msg.role === "user");
+          if (latestUserMsg) {
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === messageId
+                  ? { ...msg, text: latestUserMsg.content, isLoading: false }
+                  : msg,
+              ),
+            );
+          }
+        }
+      } else {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === messageId
+              ? { ...msg, text: userText, isLoading: false }
+              : msg,
+          ),
+        );
+      }
 
       const assistantMessage = {
         id: (Date.now() + 1).toString(),
@@ -175,8 +205,24 @@ export default function ChatScreen({ navigation }) {
       }
     } catch (error) {
       console.error("Voice message error:", error);
+
+      // Update message lỗi nếu có lỗi
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId
+            ? {
+                ...msg,
+                text:
+                  "Lỗi xử lý giọng nói: " +
+                  (error.message || "Không thể kết nối"),
+                isLoading: false,
+              }
+            : msg,
+        ),
+      );
+
       const errorMessage = {
-        id: Date.now().toString(),
+        id: (Date.now() + 2).toString(),
         text: "Lỗi xử lý giọng nói: " + (error.message || "Không thể kết nối"),
         sender: "assistant",
         isError: true,

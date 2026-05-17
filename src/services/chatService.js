@@ -44,6 +44,9 @@ const chatService = {
 
       formData.append("platform", "mobile");
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 giây timeout
+
       const response = await fetch(`${API_URL}/voice-chat`, {
         method: "POST",
         headers: {
@@ -51,7 +54,10 @@ const chatService = {
           Accept: "application/json",
         },
         body: formData,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const data = await response.json();
       if (!response.ok) {
