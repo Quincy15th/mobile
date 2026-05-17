@@ -2,14 +2,19 @@
 
 # dependencies
 node_modules/
-
+# env
+.env
+.env.*
+!.env.example
 # Expo
 .expo/
 dist/
 web-build/
 expo-env.d.ts
-
+# testing
+coverage/
 # Native
+
 .kotlin/
 *.orig.*
 *.jks
@@ -41,3 +46,5 @@ app-example
 # generated native folders
 /ios
 /android
+# Windows
+Thumbs.db

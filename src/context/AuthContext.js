@@ -1,5 +1,5 @@
-import React, { createContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const AuthContext = createContext();
 
@@ -13,8 +13,8 @@ export const AuthProvider = ({ children }) => {
     const loadUserData = async () => {
       try {
         const [userValue, tokenValue] = await Promise.all([
-          AsyncStorage.getItem('userData'),
-          AsyncStorage.getItem('userToken')
+          AsyncStorage.getItem("userData"),
+          AsyncStorage.getItem("userToken"),
         ]);
 
         if (userValue != null) {
@@ -35,12 +35,11 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (authData) => {
     try {
-      // Backend returns { user, accessToken }
       setUserData(authData.user);
       setUserToken(authData.accessToken);
-      await AsyncStorage.setItem('userData', JSON.stringify(authData.user));
+      await AsyncStorage.setItem("userData", JSON.stringify(authData.user));
       if (authData.accessToken) {
-        await AsyncStorage.setItem('userToken', authData.accessToken);
+        await AsyncStorage.setItem("userToken", authData.accessToken);
       }
     } catch (e) {
       console.error("Failed to save auth data", e);
@@ -51,8 +50,8 @@ export const AuthProvider = ({ children }) => {
     try {
       setUserData(null);
       setUserToken(null);
-      await AsyncStorage.removeItem('userData');
-      await AsyncStorage.removeItem('userToken');
+      await AsyncStorage.removeItem("userData");
+      await AsyncStorage.removeItem("userToken");
     } catch (e) {
       console.error("Failed to remove auth data", e);
     }
@@ -61,14 +60,16 @@ export const AuthProvider = ({ children }) => {
   const updateUserData = async (newUserData) => {
     try {
       setUserData(newUserData);
-      await AsyncStorage.setItem('userData', JSON.stringify(newUserData));
+      await AsyncStorage.setItem("userData", JSON.stringify(newUserData));
     } catch (e) {
       console.error("Failed to update user data", e);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ userData, userToken, authReady, login, logout, updateUserData }}>
+    <AuthContext.Provider
+      value={{ userData, userToken, authReady, login, logout, updateUserData }}
+    >
       {children}
     </AuthContext.Provider>
   );

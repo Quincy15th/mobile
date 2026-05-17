@@ -1,14 +1,26 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
+import React, { useEffect, useRef, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Audio } from "expo-av";
 
-export default function ReminderBanner({ message, onDismiss, token, getSpeechUrl }) {
+export default function ReminderBanner({
+  message,
+  onDismiss,
+  token,
+  getSpeechUrl,
+}) {
   const [sound, setSound] = useState(null);
   const translateY = useRef(new Animated.Value(-100)).current;
   const isMounted = useRef(true);
   const timeoutRef = useRef(null);
   const soundRef = useRef(null);
+  const isFetchingVoice = useRef(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -41,40 +53,57 @@ export default function ReminderBanner({ message, onDismiss, token, getSpeechUrl
         soundRef.current = null;
         setSound(null);
       } catch (e) {
-        console.log('Error stopping sound', e);
+        console.log("Error stopping sound", e);
       }
     }
   };
 
   const startRepeatingVoice = async () => {
-    if (!message || !isMounted.current) return;
+    if (!message || !isMounted.current || isFetchingVoice.current) return;
+
+    isFetchingVoice.current = true;
 
     // Giải phóng âm thanh trước đó nếu đang chạy để tránh tràn bộ nhớ
     if (soundRef.current) {
       try {
+        await soundRef.current.stopAsync();
         await soundRef.current.unloadAsync();
       } catch (e) {}
+      soundRef.current = null;
     }
 
     try {
+      // Cấu hình lại ưu tiên loa ngoài cho việc phát thông báo
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+
       const encodedText = encodeURIComponent(`Thông báo: ${message}`);
       const url = `${getSpeechUrl()}?text=${encodedText}`;
+
+      console.log("✅ [Reminder] Đang gọi TTS với URL:", url);
 
       const { sound: newSound } = await Audio.Sound.createAsync(
         {
           uri: url,
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         },
-        { shouldPlay: true }
+        { shouldPlay: true },
       );
 
       if (!isMounted.current) {
         await newSound.unloadAsync();
+        isFetchingVoice.current = false;
         return;
       }
 
       soundRef.current = newSound;
       setSound(newSound);
+      isFetchingVoice.current = false;
 
       newSound.setOnPlaybackStatusUpdate(async (status) => {
         if (status.didJustFinish && isMounted.current) {
@@ -83,11 +112,12 @@ export default function ReminderBanner({ message, onDismiss, token, getSpeechUrl
 
           timeoutRef.current = setTimeout(() => {
             if (isMounted.current) startRepeatingVoice();
-          }, 3000);
+          }, 5000); // Tăng giãn cách lên 5 giây thay vì 3 giây cho đỡ dồn dập
         }
       });
     } catch (error) {
-      console.error('Reminder TTS error:', error);
+      console.error("❌ [Reminder] Lỗi TTS (Không phát được):", error);
+      isFetchingVoice.current = false;
     }
   };
 
@@ -113,7 +143,9 @@ export default function ReminderBanner({ message, onDismiss, token, getSpeechUrl
         </View>
         <View style={styles.textContainer}>
           <Text style={styles.title}>Nhắc nhở công việc</Text>
-          <Text style={styles.message} numberOfLines={2}>{message}</Text>
+          <Text style={styles.message} numberOfLines={2}>
+            {message}
+          </Text>
         </View>
         <TouchableOpacity style={styles.closeButton} onPress={handleDismiss}>
           <Text style={styles.closeButtonText}>TẮT</Text>
@@ -125,58 +157,58 @@ export default function ReminderBanner({ message, onDismiss, token, getSpeechUrl
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
+    position: "absolute",
     top: 50,
     left: 10,
     right: 10,
     zIndex: 9999,
-    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+    backgroundColor: "rgba(30, 41, 59, 0.95)",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.5)',
+    borderColor: "rgba(245, 158, 11, 0.5)",
     elevation: 10,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
   },
   content: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
   },
   iconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   textContainer: {
     flex: 1,
     marginLeft: 12,
   },
   title: {
-    color: '#f59e0b',
-    fontWeight: 'bold',
+    color: "#f59e0b",
+    fontWeight: "bold",
     fontSize: 14,
     marginBottom: 2,
   },
   message: {
-    color: '#f8fafc',
+    color: "#f8fafc",
     fontSize: 15,
   },
   closeButton: {
-    backgroundColor: '#f59e0b',
+    backgroundColor: "#f59e0b",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
     marginLeft: 10,
   },
   closeButtonText: {
-    color: '#000',
-    fontWeight: 'bold',
+    color: "#000",
+    fontWeight: "bold",
     fontSize: 12,
   },
 });

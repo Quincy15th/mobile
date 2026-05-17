@@ -1,18 +1,14 @@
-import { Platform } from 'react-native';
+import { Platform } from "react-native";
 
-/**
- * QUAN TRỌNG:
- * Vì bạn đang dùng một địa chỉ IP cụ thể (backend server),
- * chúng ta sẽ dùng chung IP này cho tất cả các nền tảng.
- */
+// Địa chỉ IP backend từ hình ảnh của bạn
+const SERVER_IP = "https://voice-assistant.io.vn";
 
-// THAY ĐỔI TẠI ĐÂY:
-const YOUR_SERVER_IP = '160.250.181.234';
-
-const BASE_URL = Platform.select({
-  ios: `http://${YOUR_SERVER_IP}:3000`,
-  android: `http://${YOUR_SERVER_IP}:3000`,
-  default: `http://${YOUR_SERVER_IP}:3000`,
-});
+const BASE_URL = "https://voice-assistant.io.vn";
+//Platform.select({
+// Nếu backend chạy cổng mặc định (80), không cần thêm :3000
+//ios: `https://${SERVER_IP}`,
+//android: `https://${SERVER_IP}`,
+//default: `https://${SERVER_IP}`,
+//});
 
 export default BASE_URL;

@@ -44,15 +44,30 @@ const chatService = {
 
       formData.append("platform", "mobile");
 
-      const response = await axios.post(`${API_URL}/voice-chat`, formData, {
+      const response = await fetch(`${API_URL}/voice-chat`, {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
+          Accept: "application/json",
         },
+        body: formData,
       });
-      return response.data;
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw data;
+      }
+      return data;
     } catch (error) {
-      if (error.response) {
+      if (
+        error &&
+        error.message &&
+        typeof error.message === "string" &&
+        !error.message.includes("Không thể xử lý")
+      ) {
+        throw error;
+      }
+      if (error && error.response) {
         throw error.response.data;
       }
       throw { message: "Không thể xử lý giọng nói" };
